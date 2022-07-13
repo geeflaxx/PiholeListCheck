@@ -1,10 +1,13 @@
-import socket
-import os
+import socket # port scan
+import os # curl
 import requests
-from alive_progress import alive_bar
-import pyfiglet
+from alive_progress import alive_bar # check status
+import pyfiglet # looking fine
 import sys
-from datetime import datetime
+from datetime import datetime # date
+
+
+import time
 #########################################################
 #       Add your list of websites in listofsite.txt     #
 #########################################################
@@ -14,27 +17,35 @@ sites = []  # Websites to have the list of adds
 blockAdSites = []   # adwebsites
 
 availableSites = []  # Websites are online
-availableAd = []   # Adsites are online
-
 notAvailableSites = []  # Websites are offline
+
+availableAd = []   # Adsites are online
 notAvailableAd = [] # Adsites are offline
 
 
 # anpingen | check available Sites
 def checkSites():
     with open("listofsites.txt", "r") as file:
-        for hostname in file:
-            if len(hostname) < 3:
-                continue
-            if hostname[-1] == '\n':
-                hostname = hostname[:-1]
-                #siteIP = socket.gethostbyname(siteIP)
-            result = os.popen(f"curl {hostname}").read()
+        with alive_bar(3) as bar:
+            for hostname in file:
+                bar()
+                time.sleep(1)
 
-            if result != "":
-                availableSites.append(hostname)
-            else:
-                notAvailableSites.append(hostname)
+                if len(hostname) < 3:
+                    continue
+
+                hostname = hostname.strip()
+
+                statusOfList = os.popen(f"curl -s {hostname}").read() # Online?
+
+                if statusOfList != "":
+                    print("test22")
+                    availableSites.append(hostname)
+                else:
+                    print("TEST")
+                    notAvailableSites.append(hostname)
+
+
 
 ''''
 1. erste zeile ( auskommentiert )
@@ -47,7 +58,7 @@ try:
     with open("list.txt", "r") as file:
         for url in file:
             target = url
-            # will scan ports between 1 to 65,535
+
             httpPort = 80
             httpsPort = 443
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -74,13 +85,15 @@ except socket.error:
 
 
 
-# check ad sites
+## check Ad sites
 def checkAdSites():
-    for url in availableSites:  # every site
+    print(f"Av: {availableSites}")
+
+    for url in availableSites:
         req = requests.get(url)
         arr = req.text.split('\n')
-        with alive_bar() as bar:
-            bar.current()
+        with alive_bar(len(availableSites)) as bar:
+            bar()
             for line in arr:
                     if len(line) < 3 or line[0] == '#':
                         continue
@@ -102,6 +115,7 @@ def checkAdSites():
 
 def writeAdSiteinFile():
     with open("availableAd.txt", "w") as file:
+        print(f"AD:{availableAd}")
         for element in availableAd:
             file.write(element)
 
@@ -110,7 +124,7 @@ def writeAdSiteinFile():
 
 
 if __name__ == '__main__':
-    ascii_banner = pyfiglet.figlet_format("Ad Checker")
+    ascii_banner = pyfiglet.figlet_format("PiholeListCheck")
     print(ascii_banner)
     print('-' * 50)
     print(f'Start Scanning: {datetime.now().replace(microsecond=0)}')
