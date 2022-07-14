@@ -29,7 +29,7 @@ def checkSites():
         with alive_bar(3) as bar:
             for hostname in file:
                 bar()
-                time.sleep(1)
+                #time.sleep(1)
 
                 if len(hostname) < 3:
                     continue
@@ -39,11 +39,43 @@ def checkSites():
                 statusOfList = os.popen(f"curl -s {hostname}").read() # Online?
 
                 if statusOfList != "":
-                    print("test22")
                     availableSites.append(hostname)
                 else:
-                    print("TEST")
                     notAvailableSites.append(hostname)
+
+
+
+
+
+def checkAdSite(target):
+    try:
+        httpPort = 80
+        httpsPort = 443
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket.setdefaulttimeout(1)
+
+        # returns an error indicator
+        result = s.connect_ex((target, httpPort))
+        result2 = s.connect_ex((target, httpsPort))
+
+        s.close()
+
+        # Ad online?
+        if result == 0:
+            return True
+        if result2 == 0:
+            return True
+
+        return False # Adsite is offline
+
+
+    except KeyboardInterrupt:
+            print("\n Fast Exit")
+            sys.exit()
+    except socket.gaierror:
+            return False
+    except socket.error:
+            return False
 
 
 
@@ -53,47 +85,15 @@ def checkSites():
 3. seite # komment
 '''
 
-
-try:
-    with open("list.txt", "r") as file:
-        for url in file:
-            target = url
-
-            httpPort = 80
-            httpsPort = 443
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            socket.setdefaulttimeout(1)
-
-            # returns an error indicator
-            result = s.connect_ex((target, httpPort))
-            result2 = s.connect_ex((target, httpsPort))
-            if result == 0:
-                print(f"Port {httpPort} is open")
-            if result2 == 0:
-                print(f"Port {httpsPort} is open")
-            s.close()
-except KeyboardInterrupt:
-        print("\n Exit")
-        sys.exit()
-except socket.gaierror:
-        print("\n Hostname Could Not Be Resolved !!!!")
-except socket.error:
-        print("\ Server not responding !!!!")
-
-
-
-
-
-
 ## check Ad sites
-def checkAdSites():
+def replaceTrash():
     print(f"Av: {availableSites}")
-
-    for url in availableSites:
-        req = requests.get(url)
-        arr = req.text.split('\n')
-        with alive_bar(len(availableSites)) as bar:
+    with alive_bar(len(availableSites)) as bar:
+        for url in availableSites:
             bar()
+            req = requests.get(url)
+            arr = req.text.split('\n')
+            # comperhensive ?
             for line in arr:
                     if len(line) < 3 or line[0] == '#':
                         continue
@@ -105,23 +105,24 @@ def checkAdSites():
                         line = line.replace(" ", "")
                     if "\n" in line:
                         line = line.replace("\n", "")
-                    try:
-                        socket.gethostbyname(line)  # Online
-                        if line != "":
-                            availableAd.append(line)
-                    except:
-                        notAvailableSites.append(line)  # Offline
-            writeAdSiteinFile()
+
+                    # is Ad online?
+                    if checkAdSite(line):
+                        availableAd.append(line)
+                    else:
+                        notAvailableAd.append(line)
+
 
 def writeAdSiteinFile():
     with open("availableAd.txt", "w") as file:
-        print(f"AD:{availableAd}")
         for element in availableAd:
-            file.write(element)
+            file.write(element + '\n')
 
 
-#def checkDuplicates():
-
+def checkDuplicates(list): # TODO WANN ???????
+    seen = set()
+    list = [uniqueElement for uniqueElement in list if uniqueElement in seen or seen.add(uniqueElement)]
+    return list # TODO deletable
 
 if __name__ == '__main__':
     ascii_banner = pyfiglet.figlet_format("PiholeListCheck")
@@ -130,4 +131,5 @@ if __name__ == '__main__':
     print(f'Start Scanning: {datetime.now().replace(microsecond=0)}')
     print('-' * 50)
     checkSites()    # to check the website
-    checkAdSites()  # to check the Ad-Site
+    replaceTrash()  # delete irrelevant stuff
+    writeAdSiteinFile() # Write in Data
